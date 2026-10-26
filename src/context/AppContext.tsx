@@ -16,6 +16,7 @@ import {
   INITIAL_COMPANY_OFFICE_DAYS
 } from '../data/initialData';
 import { validateWfhSwap } from '../utils/wfhSchedule';
+import { initDemoNetworkGuard } from '../utils/demoGuard';
 
 export interface ToastMessage {
   id: string;
@@ -36,6 +37,12 @@ interface AppContextType {
   setActiveTab: (tab: 'employee' | 'team_manager' | 'hr_admin') => void;
   currentDateStr: string;
   setCurrentDateStr: (date: string) => void;
+
+  // Demo Sandbox Mode
+  isDemoMode: boolean;
+  enterDemoMode: () => void;
+  exitDemoMode: () => void;
+  resetDemoData: () => void;
   
   // Actions
   addLeaveRequest: (req: {
@@ -87,7 +94,7 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const STORAGE_KEYS = {
+const PROD_STORAGE_KEYS = {
   EMPLOYEES: 'leave_wfh_employees_v2',
   LEAVES: 'leave_wfh_leaves_v2',
   SWAPS: 'leave_wfh_swaps_v2',
@@ -96,11 +103,40 @@ const STORAGE_KEYS = {
   CURRENT_EMP_ID: 'leave_wfh_current_emp_v2',
 };
 
+const DEMO_STORAGE_KEYS = {
+  EMPLOYEES: 'demo_leave_wfh_employees_v2',
+  LEAVES: 'demo_leave_wfh_leaves_v2',
+  SWAPS: 'demo_leave_wfh_swaps_v2',
+  REMOTE_CHECKINS: 'demo_leave_wfh_remote_checkins_v2',
+  COMPANY_DAYS: 'demo_leave_wfh_company_days_v2',
+  CURRENT_EMP_ID: 'demo_leave_wfh_current_emp_v2',
+};
+
+// Check if demo mode is requested either from URL query param or from active sessionStorage
+const checkIsDemoMode = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('demo') === 'true' || params.get('demo') === '1') {
+      sessionStorage.setItem('is_demo_mode', 'true');
+      return true;
+    }
+    return sessionStorage.getItem('is_demo_mode') === 'true';
+  } catch {
+    return false;
+  }
+};
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Load state from localStorage or fallback to seed
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(checkIsDemoMode);
+
+  // Load state from sessionStorage in demo mode, or localStorage in prod mode, fallback to seed
   const [employees, setEmployees] = useState<Employee[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.EMPLOYEES);
+      const isDemo = checkIsDemoMode();
+      const storage = isDemo ? window.sessionStorage : window.localStorage;
+      const key = isDemo ? DEMO_STORAGE_KEYS.EMPLOYEES : PROD_STORAGE_KEYS.EMPLOYEES;
+      const saved = storage.getItem(key);
       if (saved) {
         const parsed: Employee[] = JSON.parse(saved);
         // Migrate legacy GROUP_C to CUSTOM
@@ -123,7 +159,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.LEAVES);
+      const isDemo = checkIsDemoMode();
+      const storage = isDemo ? window.sessionStorage : window.localStorage;
+      const key = isDemo ? DEMO_STORAGE_KEYS.LEAVES : PROD_STORAGE_KEYS.LEAVES;
+      const saved = storage.getItem(key);
       return saved ? JSON.parse(saved) : INITIAL_LEAVE_REQUESTS;
     } catch {
       return INITIAL_LEAVE_REQUESTS;
@@ -132,7 +171,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [wfhSwaps, setWfhSwaps] = useState<WfhSwapRequest[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.SWAPS);
+      const isDemo = checkIsDemoMode();
+      const storage = isDemo ? window.sessionStorage : window.localStorage;
+      const key = isDemo ? DEMO_STORAGE_KEYS.SWAPS : PROD_STORAGE_KEYS.SWAPS;
+      const saved = storage.getItem(key);
       return saved ? JSON.parse(saved) : INITIAL_WFH_SWAPS;
     } catch {
       return INITIAL_WFH_SWAPS;
@@ -141,7 +183,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [remoteCheckIns, setRemoteCheckIns] = useState<RemoteCheckInRequest[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.REMOTE_CHECKINS);
+      const isDemo = checkIsDemoMode();
+      const storage = isDemo ? window.sessionStorage : window.localStorage;
+      const key = isDemo ? DEMO_STORAGE_KEYS.REMOTE_CHECKINS : PROD_STORAGE_KEYS.REMOTE_CHECKINS;
+      const saved = storage.getItem(key);
       return saved ? JSON.parse(saved) : INITIAL_REMOTE_CHECKINS;
     } catch {
       return INITIAL_REMOTE_CHECKINS;
@@ -150,7 +195,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [companyOfficeDays, setCompanyOfficeDays] = useState<CompanyOfficeDay[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.COMPANY_DAYS);
+      const isDemo = checkIsDemoMode();
+      const storage = isDemo ? window.sessionStorage : window.localStorage;
+      const key = isDemo ? DEMO_STORAGE_KEYS.COMPANY_DAYS : PROD_STORAGE_KEYS.COMPANY_DAYS;
+      const saved = storage.getItem(key);
       return saved ? JSON.parse(saved) : INITIAL_COMPANY_OFFICE_DAYS;
     } catch {
       return INITIAL_COMPANY_OFFICE_DAYS;
@@ -159,7 +207,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [currentEmployeeId, setCurrentEmployeeIdState] = useState<string>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.CURRENT_EMP_ID);
+      const isDemo = checkIsDemoMode();
+      const storage = isDemo ? window.sessionStorage : window.localStorage;
+      const key = isDemo ? DEMO_STORAGE_KEYS.CURRENT_EMP_ID : PROD_STORAGE_KEYS.CURRENT_EMP_ID;
+      const saved = storage.getItem(key);
       return saved || 'emp-001';
     } catch {
       return 'emp-001';
@@ -170,54 +221,78 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [currentDateStr, setCurrentDateStr] = useState<string>('2026-10-19'); // Monday of target week
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-  // Auto-sync to localStorage
+  // Install the network mutation guard and greet demo visitors
+  useEffect(() => {
+    initDemoNetworkGuard();
+    if (checkIsDemoMode()) {
+      showToast(
+        'info',
+        '✨ เข้าสู่ Interactive Demo Mode',
+        'ยินดีต้อนรับสู่โหมดทดลองเล่น Sandbox! คุณสามารถทดลองยื่นคำขอ อนุมัติ และจัดการข้อมูลได้อิสระ โดยข้อมูลจะจำลองในหน่วยความจำชั่วคราว ไม่กระทบฐานข้อมูลจริง'
+      );
+    }
+  }, []);
+
+  // Auto-sync state: in Demo Mode strictly to sessionStorage; in normal mode to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(employees));
+      const storage = isDemoMode ? window.sessionStorage : window.localStorage;
+      const key = isDemoMode ? DEMO_STORAGE_KEYS.EMPLOYEES : PROD_STORAGE_KEYS.EMPLOYEES;
+      storage.setItem(key, JSON.stringify(employees));
     } catch (e) {
       console.error(e);
     }
-  }, [employees]);
+  }, [employees, isDemoMode]);
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEYS.LEAVES, JSON.stringify(leaveRequests));
+      const storage = isDemoMode ? window.sessionStorage : window.localStorage;
+      const key = isDemoMode ? DEMO_STORAGE_KEYS.LEAVES : PROD_STORAGE_KEYS.LEAVES;
+      storage.setItem(key, JSON.stringify(leaveRequests));
     } catch (e) {
       console.error(e);
     }
-  }, [leaveRequests]);
+  }, [leaveRequests, isDemoMode]);
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEYS.SWAPS, JSON.stringify(wfhSwaps));
+      const storage = isDemoMode ? window.sessionStorage : window.localStorage;
+      const key = isDemoMode ? DEMO_STORAGE_KEYS.SWAPS : PROD_STORAGE_KEYS.SWAPS;
+      storage.setItem(key, JSON.stringify(wfhSwaps));
     } catch (e) {
       console.error(e);
     }
-  }, [wfhSwaps]);
+  }, [wfhSwaps, isDemoMode]);
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEYS.REMOTE_CHECKINS, JSON.stringify(remoteCheckIns));
+      const storage = isDemoMode ? window.sessionStorage : window.localStorage;
+      const key = isDemoMode ? DEMO_STORAGE_KEYS.REMOTE_CHECKINS : PROD_STORAGE_KEYS.REMOTE_CHECKINS;
+      storage.setItem(key, JSON.stringify(remoteCheckIns));
     } catch (e) {
       console.error(e);
     }
-  }, [remoteCheckIns]);
+  }, [remoteCheckIns, isDemoMode]);
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEYS.COMPANY_DAYS, JSON.stringify(companyOfficeDays));
+      const storage = isDemoMode ? window.sessionStorage : window.localStorage;
+      const key = isDemoMode ? DEMO_STORAGE_KEYS.COMPANY_DAYS : PROD_STORAGE_KEYS.COMPANY_DAYS;
+      storage.setItem(key, JSON.stringify(companyOfficeDays));
     } catch (e) {
       console.error(e);
     }
-  }, [companyOfficeDays]);
+  }, [companyOfficeDays, isDemoMode]);
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEYS.CURRENT_EMP_ID, currentEmployeeId);
+      const storage = isDemoMode ? window.sessionStorage : window.localStorage;
+      const key = isDemoMode ? DEMO_STORAGE_KEYS.CURRENT_EMP_ID : PROD_STORAGE_KEYS.CURRENT_EMP_ID;
+      storage.setItem(key, currentEmployeeId);
     } catch (e) {
       console.error(e);
     }
-  }, [currentEmployeeId]);
+  }, [currentEmployeeId, isDemoMode]);
 
   const currentEmployee = employees.find(e => e.id === currentEmployeeId) || employees[0];
 
@@ -471,13 +546,90 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('info', 'ลบพนักงานสำเร็จ', 'ลบข้อมูลออกจากระบบแล้ว');
   };
 
+  const resetDemoData = () => {
+    try {
+      Object.values(DEMO_STORAGE_KEYS).forEach(k => sessionStorage.removeItem(k));
+    } catch {}
+    setEmployees(INITIAL_EMPLOYEES);
+    setLeaveRequests(INITIAL_LEAVE_REQUESTS);
+    setWfhSwaps(INITIAL_WFH_SWAPS);
+    setRemoteCheckIns(INITIAL_REMOTE_CHECKINS);
+    setCompanyOfficeDays(INITIAL_COMPANY_OFFICE_DAYS);
+    setCurrentEmployeeIdState('emp-001');
+    setActiveTab('employee');
+    showToast('success', 'รีเซ็ตข้อมูลเดโมเรียบร้อย', 'กู้คืนข้อมูลจำลองเริ่มต้นสำหรับทดสอบเรียบร้อยแล้ว');
+  };
+
+  const enterDemoMode = () => {
+    try {
+      sessionStorage.setItem('is_demo_mode', 'true');
+    } catch {}
+    setIsDemoMode(true);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('demo', 'true');
+      window.history.replaceState({}, '', url.toString());
+    } catch {}
+    resetDemoData();
+    showToast(
+      'info',
+      '✨ เปิดใช้งาน Interactive Demo Mode',
+      'เข้าสู่เซสชัน Demo Guest เรียบร้อยแล้ว การกระทำทั้งหมดจะจำลองในหน่วยความจำเท่านั้น'
+    );
+  };
+
+  const exitDemoMode = () => {
+    try {
+      sessionStorage.removeItem('is_demo_mode');
+      Object.values(DEMO_STORAGE_KEYS).forEach(k => sessionStorage.removeItem(k));
+    } catch {}
+    setIsDemoMode(false);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('demo');
+      window.history.replaceState({}, '', url.toString());
+    } catch {}
+
+    // Reload from prod localStorage
+    try {
+      const savedEmp = localStorage.getItem(PROD_STORAGE_KEYS.EMPLOYEES);
+      setEmployees(savedEmp ? JSON.parse(savedEmp) : INITIAL_EMPLOYEES);
+
+      const savedLeaves = localStorage.getItem(PROD_STORAGE_KEYS.LEAVES);
+      setLeaveRequests(savedLeaves ? JSON.parse(savedLeaves) : INITIAL_LEAVE_REQUESTS);
+
+      const savedSwaps = localStorage.getItem(PROD_STORAGE_KEYS.SWAPS);
+      setWfhSwaps(savedSwaps ? JSON.parse(savedSwaps) : INITIAL_WFH_SWAPS);
+
+      const savedRemote = localStorage.getItem(PROD_STORAGE_KEYS.REMOTE_CHECKINS);
+      setRemoteCheckIns(savedRemote ? JSON.parse(savedRemote) : INITIAL_REMOTE_CHECKINS);
+
+      const savedCompany = localStorage.getItem(PROD_STORAGE_KEYS.COMPANY_DAYS);
+      setCompanyOfficeDays(savedCompany ? JSON.parse(savedCompany) : INITIAL_COMPANY_OFFICE_DAYS);
+
+      const savedId = localStorage.getItem(PROD_STORAGE_KEYS.CURRENT_EMP_ID);
+      setCurrentEmployeeIdState(savedId || 'emp-001');
+    } catch {
+      setEmployees(INITIAL_EMPLOYEES);
+      setLeaveRequests(INITIAL_LEAVE_REQUESTS);
+      setWfhSwaps(INITIAL_WFH_SWAPS);
+      setRemoteCheckIns(INITIAL_REMOTE_CHECKINS);
+      setCompanyOfficeDays(INITIAL_COMPANY_OFFICE_DAYS);
+      setCurrentEmployeeIdState('emp-001');
+    }
+
+    setActiveTab('employee');
+    showToast('info', 'ออกจาก Demo Mode', 'กลับสู่โหมดข้อมูลปกติเรียบร้อย');
+  };
+
   const resetToDefaultData = () => {
-    localStorage.removeItem(STORAGE_KEYS.EMPLOYEES);
-    localStorage.removeItem(STORAGE_KEYS.LEAVES);
-    localStorage.removeItem(STORAGE_KEYS.SWAPS);
-    localStorage.removeItem(STORAGE_KEYS.REMOTE_CHECKINS);
-    localStorage.removeItem(STORAGE_KEYS.COMPANY_DAYS);
-    localStorage.removeItem(STORAGE_KEYS.CURRENT_EMP_ID);
+    if (isDemoMode) {
+      resetDemoData();
+      return;
+    }
+    try {
+      Object.values(PROD_STORAGE_KEYS).forEach(k => localStorage.removeItem(k));
+    } catch {}
     setEmployees(INITIAL_EMPLOYEES);
     setLeaveRequests(INITIAL_LEAVE_REQUESTS);
     setWfhSwaps(INITIAL_WFH_SWAPS);
@@ -502,6 +654,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setActiveTab,
         currentDateStr,
         setCurrentDateStr,
+        isDemoMode,
+        enterDemoMode,
+        exitDemoMode,
+        resetDemoData,
         addLeaveRequest,
         addWfhSwapRequest,
         addRemoteCheckInRequest,

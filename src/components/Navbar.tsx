@@ -28,7 +28,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenPolicyGuide }) => {
     setActiveTab,
     leaveRequests,
     wfhSwaps,
-    resetToDefaultData
+    resetToDefaultData,
+    isDemoMode,
+    enterDemoMode
   } = useApp();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -61,13 +63,19 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenPolicyGuide }) => {
               <Laptop className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-bold text-slate-900 tracking-tight text-base sm:text-lg">
                   ระบบลางาน & WFH Swap
                 </span>
                 <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
                   Hybrid Work OS
                 </span>
+                {isDemoMode && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs">
+                    <Sparkles className="w-3 h-3 text-amber-600" />
+                    Demo Sandbox
+                  </span>
+                )}
               </div>
               <p className="text-[11px] text-slate-500 hidden sm:block">
                 Leave & WFH Day-Swap Management System (RBAC)
@@ -93,6 +101,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenPolicyGuide }) => {
                   <span className={`text-[10px] px-1.5 py-0.2 rounded font-medium border ${roleBadgeMap[currentEmployee.role]}`}>
                     {currentEmployee.role}
                   </span>
+                  {isDemoMode && (
+                    <span className="text-[9px] px-1 py-0.2 rounded font-bold bg-amber-400 text-slate-900 shadow-2xs">
+                      DEMO
+                    </span>
+                  )}
                 </div>
                 <div className="text-[10px] text-slate-500 truncate max-w-[150px]">
                   {currentEmployee.position}
@@ -111,15 +124,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenPolicyGuide }) => {
                 <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                   <div className="px-4 py-2 border-b border-slate-100 flex items-center justify-between">
                     <div>
-                      <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                        สลับผู้ใช้งานทดสอบ (Persona Switcher)
+                      <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                        {isDemoMode && <Sparkles className="w-3.5 h-3.5 text-amber-500" />}
+                        <span>{isDemoMode ? 'สลับผู้ใช้งานในโหมดเดโม' : 'สลับผู้ใช้งานทดสอบ (Persona)'}</span>
                       </h4>
                       <p className="text-[11px] text-slate-500">
-                        ทดสอบมุมมองทั้ง 3 สิทธิ์ (Employee, Manager, HR)
+                        {isDemoMode ? 'ทดสอบได้ครบทุกสิทธิ์ โดยไม่กระทบฐานข้อมูลจริง' : 'ทดสอบมุมมองทั้ง 3 สิทธิ์ (Employee, Manager, HR)'}
                       </p>
                     </div>
-                    <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-[10px] font-semibold">
-                      RBAC Mode
+                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold ${isDemoMode ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-indigo-50 text-indigo-700'}`}>
+                      {isDemoMode ? 'Demo Sandbox' : 'RBAC Mode'}
                     </span>
                   </div>
 
@@ -244,8 +258,19 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenPolicyGuide }) => {
 
           </nav>
 
-          {/* Quick Guide Trigger */}
+          {/* Quick Guide & Demo Mode Triggers */}
           <div className="flex items-center gap-2">
+            {!isDemoMode && (
+              <button
+                onClick={enterDemoMode}
+                className="inline-flex items-center gap-1.5 text-xs text-amber-800 hover:text-amber-950 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg font-semibold transition-all border border-amber-200/90 shadow-2xs active:scale-95"
+                title="เข้าสู่โหมดทดลองเล่น Sandbox สำหรับผู้เยี่ยมชมพอร์ตโฟลิโอ"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                <span>Try Demo Mode</span>
+              </button>
+            )}
+
             <button
               onClick={onOpenPolicyGuide}
               className="inline-flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-800 bg-indigo-50/70 hover:bg-indigo-100 px-3 py-1.5 rounded-lg font-medium transition-colors border border-indigo-200/50"

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
+import { DemoBanner } from './components/common/DemoBanner';
 import { EmployeeDashboard } from './components/employee/EmployeeDashboard';
 import { ManagerView } from './components/manager/ManagerView';
 import { HRAdminView } from './components/hr/HRAdminView';
@@ -13,6 +14,9 @@ const MainContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
+      {/* Subtle Demo Sandbox Top Banner */}
+      <DemoBanner />
+
       {/* Top Navigation */}
       <Navbar onOpenPolicyGuide={() => setIsGuideOpen(true)} />
 
